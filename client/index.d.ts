@@ -33,6 +33,29 @@ export class Client {
   pages(path: string, options?: { query?: RequestOptions['query']; pageSize?: number; signal?: AbortSignal }): AsyncGenerator<Page<ApiRecord>>;
   events(options?: { after?: number; signal?: AbortSignal }): AsyncGenerator<unknown>;
 
+  /** Inspect workers with historical job ownership. */
+  listWorkers(options?: RequestOptions): Promise<Page<ApiRecord>>;
+
+  /** Summarize completed job throughput and latency. */
+  throughputReport(options?: RequestOptions): Promise<unknown>;
+
+  /** Inspect dependency readiness and failures. */
+  jobDependencies(id: string, options?: RequestOptions): Promise<unknown>;
+
+  /** Read the job attempt timeline. */
+  jobHistory(id: string, options?: RequestOptions): Promise<unknown>;
+
+  /** Cancel pending work while preserving running jobs. */
+  drainQueue(id: string, body: {
+    /** Cancellation reason */
+    reason: string;
+  }, options?: RequestOptions): Promise<unknown>;
+
+  /** Retry all dead letters in a queue. */
+  retryDeadJobs(id: string, body: {
+
+  }, options?: RequestOptions): Promise<unknown>;
+
   /** List queues. */
   listQueues(options?: RequestOptions): Promise<Page<ApiRecord>>;
 
@@ -83,6 +106,8 @@ export class Client {
     maxAttempts?: number;
     /** Permanent per-queue deduplication key */
     dedupeKey?: string;
+    /** dependsOn */
+    dependsOn?: Array<string>;
   }, options?: RequestOptions): Promise<unknown>;
 
   /** Enqueue an atomic batch. */
@@ -103,6 +128,8 @@ export class Client {
     maxAttempts?: number;
     /** Permanent per-queue deduplication key */
     dedupeKey?: string;
+    /** dependsOn */
+    dependsOn?: Array<string>;
   }>;
   }, options?: RequestOptions): Promise<unknown>;
 

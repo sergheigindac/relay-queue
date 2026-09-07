@@ -3,6 +3,36 @@ import { Transport } from './transport.js';
 /** Named operations for the application API. Generated from route definitions. */
 export class Client extends Transport {
 
+  /** Inspect workers with historical job ownership. */
+  listWorkers(options = {}) {
+    return this.request('GET', "/api/workers", { ...options });
+  }
+
+  /** Summarize completed job throughput and latency. */
+  throughputReport(options = {}) {
+    return this.request('GET', "/api/reports/throughput", { ...options });
+  }
+
+  /** Inspect dependency readiness and failures. */
+  jobDependencies(id, options = {}) {
+    return this.request('GET', '/api/jobs/' + encodeURIComponent(id) + '/dependencies', { ...options });
+  }
+
+  /** Read the job attempt timeline. */
+  jobHistory(id, options = {}) {
+    return this.request('GET', '/api/jobs/' + encodeURIComponent(id) + '/history', { ...options });
+  }
+
+  /** Cancel pending work while preserving running jobs. */
+  drainQueue(id, body, options = {}) {
+    return this.request('POST', '/api/queues/' + encodeURIComponent(id) + '/drain', { ...options, body });
+  }
+
+  /** Retry all dead letters in a queue. */
+  retryDeadJobs(id, body, options = {}) {
+    return this.request('POST', '/api/queues/' + encodeURIComponent(id) + '/retry-dead', { ...options, body });
+  }
+
   /** List queues. */
   listQueues(options = {}) {
     return this.request('GET', "/api/queues", { ...options });
