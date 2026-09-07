@@ -25,7 +25,7 @@ export class Queues {
     const jobs = this.store.all('job').filter(job => job.queueId === id);
     const counts = { pending: 0, running: 0, succeeded: 0, dead: 0, cancelled: 0 };
     for (const job of jobs) counts[job.status]++;
-    const ready = jobs.filter(job => job.status === 'pending' && job.availableAt <= this.store.clock());
+    const ready = jobs.filter(job => job.status === 'pending' && job.availableAt <= this.store.clock() && (job.dependsOn ?? []).every(id => this.store.get('job', id).status === 'succeeded'));
     return {
       queue, counts, total: jobs.length, ready: ready.length,
       oldestReadyAgeMs: ready.length ? this.store.clock() - Math.min(...ready.map(job => job.availableAt)) : 0,

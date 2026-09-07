@@ -17,7 +17,14 @@ export class Jobs {
         const existing = this.store.find('job', job => job.queueId === queue.id && job.dedupeKey === input.dedupeKey);
         if (existing) return existing;
       }
+      const dependsOn = input.dependsOn ?? [];
+      ensure(new Set(dependsOn).size === dependsOn.length, 422, 'duplicate_dependency', 'Dependencies must be unique');
+      for (const id of dependsOn) {
+        const dependency = this.store.get('job', id);
+        ensure(dependency.queueId === queue.id, 422, 'cross_queue_dependency', 'Dependencies must belong to the same queue');
+      }
       const job = this.store.create('job', {
+        dependsOn,
         queueId: queue.id, type: input.type, payload, priority: input.priority,
         dedupeKey: input.dedupeKey ?? null, status: 'pending', attempts: 0,
         maxAttempts: input.maxAttempts ?? queue.maxAttempts,
@@ -48,7 +55,7 @@ export class Jobs {
       if (queue.paused) return { job: null };
       const jobs = this.store.all('job').filter(job => job.queueId === queueId);
       if (jobs.filter(job => job.status === 'running').length >= queue.concurrency) return { job: null };
-      const ready = jobs.filter(job => job.status === 'pending' && job.availableAt <= this.store.clock())
+      const ready = jobs.filter(job => job.status === 'pending' && job.availableAt <= this.store.clock() && (job.dependsOn ?? []).every(id => this.store.get('job', id).status === 'succeeded'))
         .sort((a, b) => b.priority - a.priority || a.createdAt - b.createdAt || a.id.localeCompare(b.id));
       if (!ready.length) return { job: null };
       const next = this.store.update('job', ready[0].id, {

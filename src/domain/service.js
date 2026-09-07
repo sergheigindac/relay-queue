@@ -2,12 +2,20 @@ import { Queues } from './queues.js';
 import { Jobs } from './jobs.js';
 import { Schedules } from './schedules.js';
 import * as s from './schemas.js';
+import { Operations } from './operations.js';
 
 export function createDomain(store) {
   const queues = new Queues(store);
   const jobs = new Jobs(store);
   const schedules = new Schedules(store, jobs);
+  const operations = new Operations(store, jobs);
   const routes = [
+    ['GET', '/api/workers', 'listWorkers', 'Inspect workers with historical job ownership', null, () => operations.workers()],
+    ['GET', '/api/reports/throughput', 'throughputReport', 'Summarize completed job throughput and latency', null, c => operations.throughput(c.query)],
+    ['GET', '/api/jobs/:id/dependencies', 'jobDependencies', 'Inspect dependency readiness and failures', null, c => operations.dependencies(c.params.id)],
+    ['GET', '/api/jobs/:id/history', 'jobHistory', 'Read the job attempt timeline', null, c => store.events({ resourceId: c.params.id, limit: 200 })],
+    ['POST', '/api/queues/:id/drain', 'drainQueue', 'Cancel pending work while preserving running jobs', s.cancelInput, c => operations.drain(c.params.id, c.body)],
+    ['POST', '/api/queues/:id/retry-dead', 'retryDeadJobs', 'Retry all dead letters in a queue', { type: 'object', properties: {}, required: [], additionalProperties: false }, c => operations.retryDead(c.params.id)],
     ['GET', '/api/queues', 'listQueues', 'List queues', null, () => store.all('queue')],
     ['POST', '/api/queues', 'createQueue', 'Create a queue', s.queueInput, c => queues.create(c.body)],
     ['GET', '/api/queues/:id', 'getQueue', 'Read a queue', null, c => store.get('queue', c.params.id)],
@@ -28,5 +36,5 @@ export function createDomain(store) {
     ['PATCH', '/api/schedules/:id', 'controlSchedule', 'Enable or disable a schedule', s.scheduleControl, c => schedules.control(c.params.id, c.body)],
     ['POST', '/api/tick', 'runScheduler', 'Reclaim leases and dispatch due schedules', { type: 'object', properties: {}, required: [], additionalProperties: false }, () => schedules.tick()],
   ];
-  return { routes, queues, jobs, schedules, tick: () => schedules.tick() };
+  return { routes, queues, jobs, schedules, operations, tick: () => schedules.tick() };
 }

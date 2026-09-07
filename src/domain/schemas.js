@@ -17,6 +17,7 @@ export const jobInput = object({
   delayMs: integer('Delay before first claim', { maximum: 604_800_000, default: 0 }),
   maxAttempts: integer('Override queue attempt limit', { minimum: 1, maximum: 20 }),
   dedupeKey: text('Permanent per-queue deduplication key', { maxLength: 120 }),
+  dependsOn: list(identifier, { minItems: 0, maxItems: 50, default: [] }),
 }, ['queueId', 'type']);
 export const batchInput = object({ jobs: list(jobInput, { maxItems: 50 }) });
 export const claimInput = object({ queueId: identifier, workerId: text('Worker instance name', { maxLength: 100 }) });
